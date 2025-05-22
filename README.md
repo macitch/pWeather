@@ -46,6 +46,8 @@
 ---
 
 ## 🧰 Project Structure
+
+```text
 pWeather/
 ├── Models/           # Codable data models (WeatherData, Forecast, Location, etc.)
 ├── ViewModels/       # ObservableObject classes for weather, city list, location
@@ -54,7 +56,7 @@ pWeather/
 ├── Domain/           # Services (WeatherManager, LocationManager, etc.)
 ├── Shared/           # UI Extensions, Utilities, Colors, Fonts
 └── Assets/           # App icon, Lottie animations, and weather icons
-
+```
 ---
 
 ## ⚙️ Setup Instructions
