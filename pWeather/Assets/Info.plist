@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>UIAppFonts</key>
+	<array>
+		<string>BROmega-Black.otf</string>
+		<string>BROmega-Light.otf</string>
+		<string>BROmega-Medium.otf</string>
+		<string>BROmega-Regular.otf</string>
+		<string>BROmega-Bold.otf</string>
+	</array>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>We need your location to show the weather for your area.</string>
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>We need your location to show the weather for your area.</string>
+</dict>
+</plist>
