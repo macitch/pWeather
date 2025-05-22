@@ -1,0 +1,12 @@
+# macOS
+.DS_Store
+
+# Xcode
+DerivedData/
+build/
+*.xcworkspace
+*.xcuserdatad
+*.xcuserstate
+*.moved-aside
+*.pbxuser
+!default.pbxuser
