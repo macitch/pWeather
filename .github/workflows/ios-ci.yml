@@ -8,14 +8,11 @@ on:
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: macos-14  # macOS 14 has Xcode 16.4 by default
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-
-    - name: Select Xcode 16.4
-      run: sudo xcode-select -switch /Applications/Xcode_16.4.app
 
     - name: Cache DerivedData
       uses: actions/cache@v3
