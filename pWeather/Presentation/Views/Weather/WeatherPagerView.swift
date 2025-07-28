@@ -16,6 +16,7 @@ struct WeatherPagerView: View {
 
     @EnvironmentObject var locationManager: LocationManager
     @EnvironmentObject var locationViewModel: LocationViewModel
+    @EnvironmentObject var citySearchViewModel: CitySearchViewModel
     @EnvironmentObject var weatherPagerViewModel: WeatherPagerViewModel
     @EnvironmentObject var weatherViewModel: WeatherViewModel
     @EnvironmentObject var appSettings: AppSettings
@@ -64,9 +65,10 @@ struct WeatherPagerView: View {
             // Location selector modal with embedded navigation stack
             NavigationStack {
                 LocationSearchView(
-                    viewModel: locationViewModel,
+                    searchViewModel: citySearchViewModel,
                     selectedTab: .constant(1)
                 )
+                .environmentObject(locationViewModel)
                 .environmentObject(appSettings)
                 .environmentObject(weatherViewModel)
                 .environmentObject(weatherPagerViewModel)
@@ -110,6 +112,6 @@ struct WeatherPagerView: View {
                     }
             }
         }
-        .tag(index) // Ensures correct tab index selection
+        .tag(index) 
     }
 }

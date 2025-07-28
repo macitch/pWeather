@@ -13,7 +13,7 @@ struct APIConfig {
 
     /// Your API key for authenticating with the Weather API.
     /// ⚠️ Note: In production, avoid hardcoding API keys. Use secure storage or remote config.
-    static let apiKey = "YOUR_API_KEY"
+    static let apiKey = "2c3673e9aae14e24ac8140115241103"
 
     /// The base endpoint URL for fetching forecast data.
     static let baseURL = "https://api.weatherapi.com/v1/forecast.json"

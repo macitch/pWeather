@@ -10,41 +10,33 @@ import SwiftUI
 import Combine
 import CoreLocation
 
-/// ViewModel that manages the list of cities displayed in the weather pager,
-/// including loading, caching, and syncing weather data.
+/// Manages the list of cities shown in the weather pager, including weather loading and syncing with saved preferences.
 @MainActor
 final class WeatherPagerViewModel: ObservableObject {
 
     // MARK: - Published Properties
 
-    /// The complete list of cities shown in the pager view (first is current location).
     @Published var cityList: [CityInfo] = []
-
-    /// The currently selected index in the pager.
-    @Published var selectedIndex: Int = 0
-
-    /// Cached weather data keyed by city ID.
+    @Published var selectedIndex = 0
     @Published var weatherCache: [String: WeatherData] = [:]
 
     // MARK: - Dependencies
 
-    private let weatherService: WeatherManager
+    private let weatherService: WeatherService
     private let appSettings: AppSettings
     private var cancellables = Set<AnyCancellable>()
 
-    /// Tracks the current location as a city entry.
     private(set) var currentLocationCity: CityInfo?
 
     // MARK: - Initialization
 
-    init(weatherService: WeatherManager, appSettings: AppSettings) {
+    init(weatherService: WeatherService, appSettings: AppSettings) {
         self.weatherService = weatherService
         self.appSettings = appSettings
     }
 
-    // MARK: - Computed Properties
+    // MARK: - Selected City
 
-    /// Returns the currently selected city, if valid.
     var selectedCity: CityInfo? {
         guard selectedIndex >= 0, selectedIndex < cityList.count else { return nil }
         return cityList[selectedIndex]
@@ -52,7 +44,6 @@ final class WeatherPagerViewModel: ObservableObject {
 
     // MARK: - Set Current Location
 
-    /// Sets the current location city and begins syncing saved cities.
     func setCurrentLocationCity(_ city: CityInfo) {
         if let current = currentLocationCity, isSameCity(current, as: city) {
             print("🔁 Skipping update — same current location: \(city.name)")
@@ -62,7 +53,6 @@ final class WeatherPagerViewModel: ObservableObject {
         print("📍 Set current location city to: \(city.name)")
         currentLocationCity = city
 
-        // Start observing saved cities once current location is known
         if cancellables.isEmpty {
             appSettings.$savedCities
                 .sink { [weak self] cities in
@@ -78,28 +68,26 @@ final class WeatherPagerViewModel: ObservableObject {
         }
     }
 
-    // MARK: - City List Management
+    // MARK: - Refresh City List
 
-    /// Updates the pager's city list, ensuring current location is first.
     private func refreshCityList(with saved: [CityInfo]) {
         guard let current = currentLocationCity else {
-            print("⚠️ No currentLocationCity set during refresh.")
+            print("⚠️ No current location set during refresh.")
             return
         }
 
-        var updatedList: [CityInfo] = [current]
         let filtered = saved.filter { !isSameCity($0, as: current) }
-        updatedList.append(contentsOf: filtered)
-        cityList = updatedList
+        cityList = [current] + filtered
 
         print("🧭 Updated city list:")
-        for (index, city) in updatedList.enumerated() {
+        for (index, city) in cityList.enumerated() {
             let marker = city.isCurrentLocation ? "(Current)" : ""
             print("  [\(index)] \(city.name) \(marker)")
         }
     }
 
-    /// Determines whether two cities represent the same location.
+    // MARK: - City Comparison
+
     func isSameCity(_ a: CityInfo, as b: CityInfo) -> Bool {
         let nameMatch = a.name.lowercased() == b.name.lowercased()
         let latMatch = abs(a.latitude - b.latitude) < 0.01
@@ -107,48 +95,40 @@ final class WeatherPagerViewModel: ObservableObject {
         return nameMatch || (latMatch && lonMatch)
     }
 
-    // MARK: - Weather Data Management
+    // MARK: - Weather Data
 
-    /// Loads weather data for a city if not already cached.
     func loadWeather(for city: CityInfo) async {
         guard weatherCache[city.id] == nil else { return }
+
         print("📦 Loading weather for city ID: \(city.id)")
+
         do {
-            let data = try await weatherService.fetchWeatherByCoordinates(
-                latitude: city.latitude,
-                longitude: city.longitude
-            )
+            let data = try await weatherService.fetch(byCoordinates: city.latitude, longitude: city.longitude)
             weatherCache[city.id] = data
         } catch {
-            print("⚠️ Failed to load weather for \(city.name): \(error)")
+            print("⚠️ Failed to load weather for \(city.name): \(error.localizedDescription)")
         }
     }
 
-    /// Forces a weather refresh for a city, even if already cached.
     func refreshWeather(for city: CityInfo) async {
         do {
-            let data = try await weatherService.fetchWeatherByCoordinates(
-                latitude: city.latitude,
-                longitude: city.longitude
-            )
+            let data = try await weatherService.fetch(byCoordinates: city.latitude, longitude: city.longitude)
             weatherCache[city.id] = data
         } catch {
-            print("⚠️ Failed to refresh weather for \(city.name): \(error)")
+            print("⚠️ Failed to refresh weather for \(city.name): \(error.localizedDescription)")
         }
     }
 
-    /// Preloads weather data for all cities in the list.
     func preloadAllCities() async {
-        var seenIDs = Set<String>()
-        for city in cityList where !seenIDs.contains(city.id) {
-            seenIDs.insert(city.id)
+        var seen = Set<String>()
+        for city in cityList where !seen.contains(city.id) {
+            seen.insert(city.id)
             await loadWeather(for: city)
         }
     }
 
-    // MARK: - Saved City Management
+    // MARK: - City Management
 
-    /// Adds a new city to the saved list and caches its weather data.
     func addCity(from weatherData: WeatherData) {
         let newCity = CityInfo(
             name: weatherData.location.name,
@@ -164,8 +144,8 @@ final class WeatherPagerViewModel: ObservableObject {
             return
         }
 
-        guard !appSettings.savedCities.contains(where: { $0.id == newCity.id }) else {
-            print("⚠️ City \(newCity.name) is already saved.")
+        guard !appSettings.savedCities.contains(where: { isSameCity($0, as: newCity) }) else {
+            print("⚠️ \(newCity.name) is already in saved cities.")
             return
         }
 
@@ -173,18 +153,15 @@ final class WeatherPagerViewModel: ObservableObject {
         weatherCache[newCity.id] = weatherData
     }
 
-    /// Deletes a city from saved list and cache.
     func deleteCity(_ city: CityInfo) {
         appSettings.deleteCity(city)
         weatherCache[city.id] = nil
     }
 
-    /// Reorders cities in the saved list (excluding current location).
     func reorderCities(from source: IndexSet, to destination: Int) {
         appSettings.reorderCities(from: source, to: destination)
     }
 
-    /// Clears all saved cities, retaining only the current location.
     func resetSavedCities() {
         print("🗑 Clearing all saved cities...")
         appSettings.clearAllCities()

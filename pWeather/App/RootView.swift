@@ -8,70 +8,67 @@
 
 import SwiftUI
 
+/// Root view that initializes and manages the primary flow of the app.
+/// Handles location authorization, weather fetching, and routing to appropriate UI screens.
 struct RootView: View {
+
+    // MARK: - Environment
+
     @EnvironmentObject private var locationManager: LocationManager
     @EnvironmentObject private var weatherViewModel: WeatherViewModel
-    @EnvironmentObject private var appSettings: AppSettings
-    @EnvironmentObject private var locationViewModel: LocationViewModel
     @EnvironmentObject private var weatherPagerViewModel: WeatherPagerViewModel
-
+    @EnvironmentObject private var appSettings: AppSettings
     @Environment(\.colorScheme) private var scheme
+
+    // MARK: - UI State
+
+    /// Indicates when content is ready to be shown after weather data loads.
     @State private var isReadyToShowContent = false
+
+    // MARK: - View
 
     var body: some View {
         ZStack {
             scheme.background.ignoresSafeArea()
 
-            if locationManager.userLocation == nil {
+            switch contentState {
+            case .requestingLocation:
                 LocationRequestView()
-            } else if let error = weatherViewModel.error?.localizedDescription {
+
+            case .error(let message):
                 ErrorView(
                     title: "Something went wrong",
-                    message: error,
-                    retryAction: {
-                        if let loc = locationManager.userLocation {
-                            weatherViewModel.fetchCurrentLocationWeatherData(
-                                latitude: loc.coordinate.latitude,
-                                longitude: loc.coordinate.longitude
-                            )
-                        }
-                    },
-                    showSettingsButton: error.contains("permission"),
-                    openSettingsAction: {
-                        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
-                        UIApplication.shared.open(url)
-                    }
+                    message: message,
+                    retryAction: { fetchWeatherIfLocationAvailable() },
+                    showSettingsButton: message.contains("permission"),
+                    openSettingsAction: openSystemSettings
                 )
-            } else if weatherViewModel.currentLocationWeatherData == nil || !isReadyToShowContent {
+
+            case .loading:
                 VStack(spacing: 20) {
                     LoadingView()
                     Text("Fetching data for your location…")
                         .font(.appSubheadline)
                         .foregroundColor(scheme.textSecondary)
                 }
-            } else {
+
+            case .ready:
                 BottomTabView()
             }
         }
         .onAppear {
-            if let loc = locationManager.userLocation {
-                print("📍 Initial location onAppear: \(loc.coordinate.latitude), \(loc.coordinate.longitude)")
-                weatherViewModel.fetchCurrentLocationWeatherData(
-                    latitude: loc.coordinate.latitude,
-                    longitude: loc.coordinate.longitude
-                )
-            } else {
-                print("⚠️ Location not available onAppear")
-            }
+            print("📲 RootView appeared.")
+            fetchWeatherIfLocationAvailable()
         }
-        .onReceive(locationManager.$userLocation) { newLoc in
-            guard let loc = newLoc else {
-                print("⚠️ Received nil location")
+        .onReceive(locationManager.$userLocation) { location in
+            guard let loc = location else {
+                print("⚠️ userLocation is nil")
                 return
             }
 
-            print("📍 Received location update: \(loc.coordinate.latitude), \(loc.coordinate.longitude)")
+            print("📍 Location update: \(loc.coordinate.latitude), \(loc.coordinate.longitude)")
 
+            // Avoid unnecessary refetches
             if let current = weatherViewModel.currentLocationWeatherData,
                abs(current.location.lat - loc.coordinate.latitude) < 0.001,
                abs(current.location.lon - loc.coordinate.longitude) < 0.001 {
@@ -80,39 +77,93 @@ struct RootView: View {
             }
 
             isReadyToShowContent = false
-            weatherViewModel.fetchCurrentLocationWeatherData(
-                latitude: loc.coordinate.latitude,
-                longitude: loc.coordinate.longitude
-            )
+            fetchWeather(for: loc.coordinate.latitude, longitude: loc.coordinate.longitude)
         }
-        .onReceive(weatherViewModel.$currentLocationWeatherData) { newData in
-            guard let newData = newData else {
-                print("⚠️ currentLocationWeatherData is still nil")
+        .onReceive(weatherViewModel.$currentLocationWeatherData) { data in
+            guard let data else {
+                print("⚠️ No weather data yet.")
                 return
             }
 
-            print("✅ Weather data received for: \(newData.location.name)")
+            print("✅ Weather data received: \(data.location.name)")
 
             let currentCity = CityInfo(
-                name: newData.location.name,
-                latitude: newData.location.lat,
-                longitude: newData.location.lon,
+                name: data.location.name,
+                latitude: data.location.lat,
+                longitude: data.location.lon,
                 isCurrentLocation: true
             )
 
-            // 🧹 Clean saved list of any duplicate city
-            appSettings.savedCities.removeAll { saved in
-                weatherPagerViewModel.isSameCity(saved, as: currentCity)
+            // Remove duplicates from saved list
+            appSettings.savedCities.removeAll {
+                weatherPagerViewModel.isSameCity($0, as: currentCity)
             }
-            print("🧹 Removed duplicate city: \(currentCity.name) from savedCities")
 
-            // ✅ Set current city
+            print("🧹 Removed duplicates from savedCities: \(currentCity.name)")
+
+            // Update pager with current city
             weatherPagerViewModel.setCurrentLocationCity(currentCity)
 
+            // Delay UI presentation for smoother transition
             Task {
                 try? await Task.sleep(nanoseconds: 1_000_000_000)
                 isReadyToShowContent = true
             }
         }
+    }
+
+    // MARK: - Derived View State
+
+    /// Determines the UI state based on location and weather data availability.
+    private var contentState: ContentState {
+        if locationManager.userLocation == nil {
+            return .requestingLocation
+        } else if let error = weatherViewModel.fetchError?.localizedDescription {
+            return .error(error)
+        } else if weatherViewModel.currentLocationWeatherData == nil || !isReadyToShowContent {
+            return .loading
+        } else {
+            return .ready
+        }
+    }
+
+    // MARK: - Weather Fetching
+
+    /// Attempts to fetch weather data if the user’s location is available.
+    private func fetchWeatherIfLocationAvailable() {
+        if let loc = locationManager.userLocation {
+            fetchWeather(for: loc.coordinate.latitude, longitude: loc.coordinate.longitude)
+        } else {
+            print("⚠️ No userLocation available.")
+            Task { @MainActor in
+                locationManager.requestAuthorization()
+            }
+        }
+    }
+
+    /// Fetches current location weather data using the provided coordinates.
+    private func fetchWeather(for latitude: Double, longitude: Double) {
+        weatherViewModel.fetchCurrentLocationWeatherData(
+            latitude: latitude,
+            longitude: longitude
+        )
+    }
+
+    // MARK: - System Settings
+
+    /// Opens the app’s system settings for location permission adjustments.
+    private func openSystemSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        UIApplication.shared.open(url)
+    }
+
+    // MARK: - View State Enum
+
+    /// Represents the four primary content states shown in the root view.
+    private enum ContentState {
+        case requestingLocation
+        case error(String)
+        case loading
+        case ready
     }
 }

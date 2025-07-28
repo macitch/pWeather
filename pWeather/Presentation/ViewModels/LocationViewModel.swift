@@ -7,70 +7,42 @@
 */
 
 import SwiftUI
-import Combine
 
-/// ViewModel responsible for managing city search, search results, and saving cities to app settings.
+/// ViewModel responsible for managing saved cities.
 @MainActor
 final class LocationViewModel: ObservableObject {
 
     // MARK: - Published Properties
 
-    /// Stores weather data results for the current city search.
-    @Published var searchResults: [WeatherData] = []
-
-    /// Indicates whether a search is currently in progress.
-    @Published var isLoading = false
-
-    /// Holds any error that occurred during the search.
-    @Published var error: Error?
+    /// The list of saved cities.
+    @Published private(set) var savedCities: [CityInfo]
 
     // MARK: - Dependencies
 
-    private let weatherService: WeatherService
     private let appSettings: AppSettings
 
-    // MARK: - Initialization
+    // MARK: - Init
 
-    /// Initializes the view model with a weather service and app settings.
-    init(weatherService: WeatherService = WeatherManager(), appSettings: AppSettings) {
-        self.weatherService = weatherService
+    init(appSettings: AppSettings) {
         self.appSettings = appSettings
-    }
-
-    // MARK: - Accessors
-
-    /// Provides access to the list of currently saved cities.
-    var savedCities: [CityInfo] {
-        appSettings.savedCities
-    }
-
-    // MARK: - Search
-
-    /// Searches for weather data by city name and updates `searchResults`.
-    /// Trims whitespace and guards against empty input.
-    func searchCityWeather(cityName: String) {
-        let trimmed = cityName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-
-        Task {
-            isLoading = true
-            error = nil
-            do {
-                let weatherData = try await weatherService.fetch(byCityName: trimmed)
-                searchResults = [weatherData]
-                print("🔍 Search result: \(weatherData.location.name)")
-            } catch {
-                self.error = error
-                print("❌ Search failed: \(error.localizedDescription)")
-            }
-            isLoading = false
-        }
+        self.savedCities = appSettings.savedCities
     }
 
     // MARK: - Save
 
-    /// Saves a city to the saved list using weather data.
-    /// Avoids duplicate entries based on city ID.
+    /// Adds a new city to saved list if not already included.
+    func saveCity(_ city: CityInfo) {
+        guard !savedCities.contains(where: { $0.id == city.id }) else {
+            print("⚠️ City already saved: \(city.name)")
+            return
+        }
+
+        appSettings.addCity(city)
+        savedCities = appSettings.savedCities
+        print("✅ Saved city: \(city.name)")
+    }
+
+    /// Adds a city from `WeatherData` (used by CitySearchViewModel consumers).
     func saveCity(from data: WeatherData) {
         let city = CityInfo(
             name: data.location.name,
@@ -78,24 +50,25 @@ final class LocationViewModel: ObservableObject {
             longitude: data.location.lon,
             isCurrentLocation: false
         )
-
-        if !appSettings.savedCities.contains(where: { $0.id == city.id }) {
-            appSettings.addCity(city)
-            print("✅ Saved city: \(city.name)")
-        } else {
-            print("⚠️ City already saved: \(city.name)")
-        }
+        saveCity(city)
     }
 
-    // MARK: - Helpers
+    // MARK: - Delete / Clear
 
-    /// Clears the current error, typically after user acknowledgement or retry.
-    func clearError() {
-        error = nil
+    func deleteCity(_ city: CityInfo) {
+        appSettings.deleteCity(city)
+        savedCities = appSettings.savedCities
     }
 
-    /// Clears search results, e.g. when the input is empty or after a city is saved.
-    func clearSearchResults() {
-        searchResults = []
+    func clearAllCities() {
+        appSettings.clearAllCities()
+        savedCities = []
+    }
+
+    // MARK: - Reorder
+
+    func reorderCities(from source: IndexSet, to destination: Int) {
+        appSettings.reorderCities(from: source, to: destination)
+        savedCities = appSettings.savedCities
     }
 }

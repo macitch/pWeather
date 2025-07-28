@@ -7,117 +7,81 @@
 */
 
 import SwiftUI
-import Combine
 import CoreLocation
 
-/// A ViewModel responsible for fetching and managing weather data for the current location
-/// and searched cities. It supports reactive updates, error handling, and async operations.
+/// A ViewModel responsible for managing weather data for the current location
+/// and searched cities. Supports async/await and reactive updates.
 @MainActor
 final class WeatherViewModel: ObservableObject {
 
-    // MARK: - Published State
+    // MARK: - Published Properties
 
-    /// Weather data for the user’s current location.
-    @Published var currentLocationWeatherData: WeatherData? = nil
-
-    /// Weather data for a city searched via the search field.
-    @Published var searchedWeatherData: WeatherData? = nil
-
-    /// Indicates whether a fetch operation is currently in progress.
-    @Published var isLoading: Bool = false
-
-    /// Holds any error encountered during a fetch or search operation.
-    @Published var error: Error? = nil
+    @Published var currentLocationWeatherData: WeatherData?
+    @Published var searchedWeatherData: WeatherData?
+    @Published var isLoading = false
+    @Published var fetchError: Error?
 
     // MARK: - Dependencies
 
-    /// The weather service manager that provides network access.
-    let weatherManager: WeatherManager
-
-    /// Shared app settings used for display formatting and preferences.
+    let weatherService: WeatherService
     let appSettings: AppSettings
 
     // MARK: - Initialization
 
-    /// Initializes the view model with a weather manager and app settings.
-    init(
-        weatherManager: WeatherManager,
-        appSettings: AppSettings
-    ) {
-        self.weatherManager = weatherManager
+    init(weatherService: WeatherService, appSettings: AppSettings) {
+        self.weatherService = weatherService
         self.appSettings = appSettings
     }
 
-    // MARK: - Current Location Weather
+    // MARK: - Fetch Current Location
 
-    /// Fetches weather data for the given coordinates (typically from the user’s current location).
-    /// Updates `currentLocationWeatherData` and handles errors.
-    func fetchCurrentLocationWeatherData(latitude: Double, longitude: Double) {
+    func fetchCurrentLocationWeatherData(latitude: CLLocationDegrees, longitude: CLLocationDegrees) {
         Task {
-            isLoading = true
-            error = nil
+            withAnimation { isLoading = true }
+            fetchError = nil
+
             print("📡 Fetching weather for: \(latitude), \(longitude)")
 
             do {
-                let data = try await weatherManager.fetchWeatherByCoordinates(
-                    latitude: latitude,
-                    longitude: longitude
-                )
+                let data = try await weatherService.fetch(byCoordinates: latitude, longitude: longitude)
                 currentLocationWeatherData = data
                 print("✅ Loaded weather for current location: \(data.location.name)")
             } catch {
-                self.error = error
+                fetchError = error
                 print("❌ Failed to load current location weather: \(error.localizedDescription)")
             }
 
-            isLoading = false
+            withAnimation { isLoading = false }
         }
     }
 
-    // MARK: - City Search Weather
+    // MARK: - Fetch by City Name
 
-    /// Searches for weather data using a city name.
-    /// Updates `searchedWeatherData` and handles errors.
     func searchCityWeather(cityName: String) {
         let trimmed = cityName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
         Task {
-            isLoading = true
-            error = nil
+            withAnimation { isLoading = true }
+            fetchError = nil
 
             do {
-                let data = try await weatherManager.fetch(byCityName: trimmed)
+                let data = try await weatherService.fetch(byCityName: trimmed)
                 searchedWeatherData = data
                 print("🔍 Found weather for: \(data.location.name)")
             } catch {
-                self.error = error
+                fetchError = error
                 print("❌ Search failed for city: \(error.localizedDescription)")
             }
 
-            isLoading = false
+            withAnimation { isLoading = false }
         }
     }
 
-    // MARK: - Fetch with Completion Handler
+    // MARK: - Reset Search
 
-    /// Performs a fetch using a completion handler for interoperability with non-async code.
-    func fetchWeather(for cityName: String, completion: @escaping (Result<WeatherData, Error>) -> Void) {
-        Task {
-            do {
-                let data = try await weatherManager.fetch(byCityName: cityName)
-                completion(.success(data))
-            } catch {
-                completion(.failure(error))
-            }
-        }
-    }
-
-    // MARK: - Reset
-
-    /// Clears the last search result and error.
     func clearSearchResult() {
         searchedWeatherData = nil
-        error = nil
+        fetchError = nil
     }
 }

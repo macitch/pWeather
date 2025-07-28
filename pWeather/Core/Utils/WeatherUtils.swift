@@ -10,20 +10,20 @@ import SwiftUI
 
 // MARK: - Unit Types
 
-/// Temperature units used in the app.
+/// Units of temperature supported by the app.
 enum TemperatureUnit: String, CaseIterable {
     case celsius = "C"
     case fahrenheit = "F"
 }
 
-/// Wind speed units used in the app.
+/// Units of wind speed supported by the app.
 enum WindSpeedUnit: String, CaseIterable {
     case metersPerSecond = "m/s"
     case kilometersPerHour = "km/h"
     case milesPerHour = "mph"
 }
 
-/// Pressure units used in the app.
+/// Units of atmospheric pressure supported by the app.
 enum PressureUnit: String, CaseIterable {
     case millimetersOfMercury = "mmHg"
     case hectopascals = "hPa"
@@ -31,16 +31,18 @@ enum PressureUnit: String, CaseIterable {
 
 // MARK: - UnitConvertible Protocol
 
-/// Protocol for converting and formatting metric/imperial values based on user preferences.
+/// A generic protocol for converting and formatting metric/imperial weather units.
 protocol UnitConvertible {
     associatedtype Unit: RawRepresentable where Unit.RawValue == String
     var metricValue: Double { get }
     var imperialValue: Double { get }
+
+    /// Returns a formatted string using the provided unit and decimal precision.
     func formattedValue(for unit: Unit, decimals: Int) -> String
 }
 
 extension UnitConvertible {
-    /// Fallback-aware formatter using string input for user-configured unit.
+    /// Converts a unit string to a typed unit and formats the value; falls back to a default.
     func formatted(for unit: String, defaultUnit: Unit, decimals: Int = 0) -> String {
         guard let validUnit = Unit(rawValue: unit) else {
             return formattedValue(for: defaultUnit, decimals: decimals)
@@ -51,7 +53,7 @@ extension UnitConvertible {
 
 // MARK: - Implementations for Units
 
-/// Temperature conversion and formatting logic.
+/// Temperature unit converter and formatter.
 struct Temperature: UnitConvertible {
     typealias Unit = TemperatureUnit
     let metricValue: Double
@@ -63,7 +65,7 @@ struct Temperature: UnitConvertible {
     }
 }
 
-/// Wind speed conversion and formatting logic.
+/// Wind speed unit converter and formatter.
 struct WindSpeed: UnitConvertible {
     typealias Unit = WindSpeedUnit
     let metricValue: Double
@@ -82,7 +84,7 @@ struct WindSpeed: UnitConvertible {
     }
 }
 
-/// Pressure conversion and formatting logic.
+/// Pressure unit converter and formatter.
 struct Pressure: UnitConvertible {
     typealias Unit = PressureUnit
     let metricValue: Double
@@ -96,7 +98,7 @@ struct Pressure: UnitConvertible {
 
 // MARK: - WeatherUtils
 
-/// Utility class for formatting and converting weather-related data.
+/// Utility class for formatting and converting weather-related data like wind, pressure, temperature, and dates.
 class WeatherUtils {
 
     // MARK: - Date Formatters
@@ -119,15 +121,15 @@ class WeatherUtils {
         return formatter
     }()
 
-    // MARK: - Wind and Pressure
+    // MARK: - Wind and Pressure Formatting
 
-    /// Returns a formatted wind speed string based on user preference.
+    /// Returns a formatted wind speed string based on user unit preference.
     static func formattedWindSpeed(speedKph: Double, speedMph: Double, unit: String) -> String {
         let wind = WindSpeed(metricValue: speedKph, imperialValue: speedMph)
         return wind.formatted(for: unit, defaultUnit: .kilometersPerHour)
     }
 
-    /// Returns a formatted pressure string based on user preference.
+    /// Returns a formatted pressure string based on user unit preference.
     static func formattedPressure(pressureMb: Double, pressureIn: Double, unit: String) -> String {
         let pressure = Pressure(metricValue: pressureMb, imperialValue: pressureIn)
         return pressure.formatted(for: unit, defaultUnit: .hectopascals)
@@ -135,7 +137,7 @@ class WeatherUtils {
 
     // MARK: - Time Formatting
 
-    /// Converts API date string to `HH:mm` format.
+    /// Converts API date string to `HH:mm` time format.
     static func formatToTime(_ dateString: String) -> String {
         guard let date = inputFormatter.date(from: dateString) else {
             return "--:--"
@@ -143,13 +145,13 @@ class WeatherUtils {
         return timeFormatter.string(from: date)
     }
 
-    /// Converts API date string to a readable weekday + date format.
+    /// Converts API date string to full day name and short date format (e.g., "Tuesday, 28 Jul").
     static func formatToDayAndDate(_ dateString: String) -> String? {
         guard let date = inputFormatter.date(from: dateString) else { return nil }
         return dayDateFormatter.string(from: date)
     }
 
-    /// Extracts only the time portion from a localtime string like `"2024-06-10 18:20"`.
+    /// Extracts time from a local time string formatted as `"yyyy-MM-dd HH:mm"`.
     static func formatLocalTime(from localTime: String) -> String {
         let components = localTime.split(separator: " ")
         return components.last.map { String($0) } ?? "--:--"
@@ -157,7 +159,7 @@ class WeatherUtils {
 
     // MARK: - Image Mapping
 
-    /// Returns the appropriate condition image name based on condition code and day/night status.
+    /// Resolves appropriate weather image name based on condition code and day/night state.
     static func getImageName(forConditionCode code: String, isDay: Int) -> String {
         if isDay == 0 {
             let nightImageName = "\(code)_night"
@@ -166,29 +168,33 @@ class WeatherUtils {
         return code
     }
 
-    // MARK: - Temperature Helpers
+    // MARK: - Temperature Formatting
 
     private static func formatTemperature(tempC: Double, tempF: Double, unit: String, decimals: Int = 0) -> String {
         let temp = Temperature(metricValue: tempC, imperialValue: tempF)
         return temp.formatted(for: unit, defaultUnit: .celsius, decimals: decimals)
     }
 
-    // MARK: - WeatherData Extensions
+    // MARK: - Convenience Formatters for WeatherData
 
+    /// Returns the current temperature from weather data in user-selected units.
     static func formattedTemperature(from data: WeatherData, unit: String) -> String {
         return formatTemperature(tempC: data.current.temp_c, tempF: data.current.temp_f, unit: unit)
     }
 
+    /// Returns the high temperature forecast for the current day.
     static func highTemperature(from data: WeatherData, unit: String) -> String {
         guard let day = data.forecast.forecastday.first?.day else { return "--" }
         return formatTemperature(tempC: day.maxtemp_c, tempF: day.maxtemp_f, unit: unit)
     }
 
+    /// Returns the low temperature forecast for the current day.
     static func lowTemperature(from data: WeatherData, unit: String) -> String {
         guard let day = data.forecast.forecastday.first?.day else { return "--" }
         return formatTemperature(tempC: day.mintemp_c, tempF: day.mintemp_f, unit: unit)
     }
 
+    /// Formats any arbitrary temperature values in selected units.
     static func formattedTemperature(tempC: Double, tempF: Double, unit: String) -> String {
         return formatTemperature(tempC: tempC, tempF: tempF, unit: unit)
     }

@@ -9,66 +9,51 @@
 import SwiftUI
 import CoreLocation
 
-/// Concrete implementation of `WeatherService`, responsible for building requests and
-/// retrieving weather data from the remote Weather API.
-final class WeatherManager {
+/// Responsible for building requests and retrieving weather data from the remote Weather API.
+final class WeatherManager: WeatherService {
 
     // MARK: - API Configuration
 
-    private let baseURL = APIConfig.baseURL
-    private let apiKey  = APIConfig.apiKey
+    private let baseURL: String = APIConfig.baseURL
+    private let apiKey: String  = APIConfig.apiKey
 
-    // MARK: - URL Construction
+    // MARK: - Public Fetch Methods
 
-    /// Builds a complete URL for a weather API request using a city name or coordinate query.
-    ///
-    /// - Parameter query: A string representing the city name or "lat,lon".
-    /// - Returns: A fully formed `URL` with required query parameters.
-    /// - Throws: `URLError.badURL` if URL construction fails.
-    private func buildURL(forQuery query: String) throws -> URL {
-        var components = URLComponents(string: baseURL)
-        components?.queryItems = [
-            URLQueryItem(name: "key", value: apiKey),
-            URLQueryItem(name: "q", value: query),
-            URLQueryItem(name: "days", value: "7"),
-            URLQueryItem(name: "aqi", value: "yes"),
-            URLQueryItem(name: "alerts", value: "yes")
+    func fetch(byCoordinates latitude: CLLocationDegrees, longitude: CLLocationDegrees) async throws -> WeatherData {
+        let query = "\(latitude),\(longitude)"
+        return try await fetchWeather(for: query)
+    }
+
+    func fetch(byCityName name: String) async throws -> WeatherData {
+        try await fetchWeather(for: name)
+    }
+
+    // MARK: - Internal Fetch Logic
+
+    private func fetchWeather(for query: String) async throws -> WeatherData {
+        let url = try buildWeatherURL(query: query)
+        return try await APIService.shared.fetch(url, responseType: WeatherData.self)
+    }
+
+    // MARK: - URL Builder
+
+    private func buildWeatherURL(query: String) throws -> URL {
+        guard var components = URLComponents(string: baseURL) else {
+            throw URLError(.badURL)
+        }
+
+        components.queryItems = [
+            .init(name: "key", value: apiKey),
+            .init(name: "q", value: query),
+            .init(name: "days", value: "7"),
+            .init(name: "aqi", value: "yes"),
+            .init(name: "alerts", value: "yes")
         ]
 
-        guard let url = components?.url else {
+        guard let url = components.url else {
             throw URLError(.badURL)
         }
 
         return url
-    }
-
-    // MARK: - Fetch Methods
-
-    /// Fetches weather data using geographic coordinates.
-    func fetchWeatherByCoordinates(latitude: CLLocationDegrees, longitude: CLLocationDegrees) async throws -> WeatherData {
-        let query = "\(latitude),\(longitude)"
-        let url = try buildURL(forQuery: query)
-        return try await APIService.shared.fetch(url, responseType: WeatherData.self)
-    }
-
-    /// Fetches weather data using a city name.
-    func fetchWeatherByCityName(city: String) async throws -> WeatherData {
-        let url = try buildURL(forQuery: city)
-        return try await APIService.shared.fetch(url, responseType: WeatherData.self)
-    }
-}
-
-// MARK: - WeatherService Conformance
-
-extension WeatherManager: WeatherService {
-
-    /// Protocol requirement: fetch weather using coordinates.
-    func fetch(byCoordinates latitude: CLLocationDegrees, longitude: CLLocationDegrees) async throws -> WeatherData {
-        try await fetchWeatherByCoordinates(latitude: latitude, longitude: longitude)
-    }
-
-    /// Protocol requirement: fetch weather using a city name.
-    func fetch(byCityName name: String) async throws -> WeatherData {
-        try await fetchWeatherByCityName(city: name)
     }
 }

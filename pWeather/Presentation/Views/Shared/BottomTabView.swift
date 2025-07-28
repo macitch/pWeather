@@ -28,6 +28,9 @@ struct BottomTabView: View {
 
     /// Manages device location updates and permissions.
     @EnvironmentObject var locationManager: LocationManager
+    
+    /// Manages search-specific logic for city weather.
+    @EnvironmentObject var citySearchViewModel: CitySearchViewModel
 
     // MARK: - State and Environment
 
@@ -46,7 +49,7 @@ struct BottomTabView: View {
                 case 0:
                     // Location tab with search functionality.
                     LocationSearchView(
-                        viewModel: locationViewModel,
+                        searchViewModel: citySearchViewModel,
                         selectedTab: $selectedTabIndex
                     )
                 case 1:

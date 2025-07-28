@@ -14,8 +14,11 @@ struct LocationSelectorView: View {
 
     // MARK: - Input Properties
 
-    /// The view model responsible for managing location data and search logic.
-    @ObservedObject var viewModel: LocationViewModel
+    /// The view model responsible for managing location state.
+    @EnvironmentObject var locationViewModel: LocationViewModel
+
+    /// The view model responsible for managing city search logic.
+    @EnvironmentObject var citySearchViewModel: CitySearchViewModel
 
     /// The global app settings, injected from the environment.
     @EnvironmentObject var appSettings: AppSettings
@@ -27,7 +30,11 @@ struct LocationSelectorView: View {
 
     var body: some View {
         // Passes all required dependencies to the main search view.
-        LocationSearchView(viewModel: viewModel, selectedTab: $selectedTab)
-            .environmentObject(appSettings)
+        LocationSearchView(
+            searchViewModel: citySearchViewModel,
+            selectedTab: $selectedTab
+        )
+        .environmentObject(locationViewModel)
+        .environmentObject(appSettings)
     }
 }

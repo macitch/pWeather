@@ -14,7 +14,11 @@ struct LocationSearchView: View {
 
     // MARK: - View Models & State
 
-    @ObservedObject var viewModel: LocationViewModel
+    /// ViewModel responsible for managing search state and logic.
+    @ObservedObject var searchViewModel: CitySearchViewModel
+
+    /// ViewModel responsible for accessing saved cities and app-level state.
+    @EnvironmentObject var locationViewModel: LocationViewModel
     @EnvironmentObject var appSettings: AppSettings
     @EnvironmentObject var weatherViewModel: WeatherViewModel
     @EnvironmentObject var weatherPagerViewModel: WeatherPagerViewModel
@@ -45,7 +49,7 @@ struct LocationSearchView: View {
                     searchBar
 
                     // Error message display
-                    if let error = viewModel.error {
+                    if let error = searchViewModel.error {
                         Text("Error: \(error.localizedDescription)")
                             .font(.appCallout)
                             .foregroundColor(scheme.brandRed)
@@ -54,7 +58,7 @@ struct LocationSearchView: View {
                     }
 
                     // Loading indicator
-                    if viewModel.isLoading {
+                    if searchViewModel.isLoading {
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle())
                             .padding()
@@ -63,7 +67,7 @@ struct LocationSearchView: View {
                     // Main content list (search results or saved cities)
                     ScrollView {
                         LazyVStack(spacing: 16) {
-                            if !viewModel.searchResults.isEmpty {
+                            if !searchViewModel.searchResults.isEmpty {
                                 searchResultsList()
                             } else if !appSettings.savedCities.isEmpty {
                                 savedCitiesList()
@@ -109,8 +113,8 @@ struct LocationSearchView: View {
 
                                 // Clear state and refocus search
                                 cityName = ""
-                                viewModel.clearSearchResults()
-                                viewModel.clearError()
+                                searchViewModel.clearSearchResults()
+                                searchViewModel.clearError()
                                 selectedSearchResult = nil
                                 isSearchFieldFocused = true
                             }
@@ -148,9 +152,9 @@ struct LocationSearchView: View {
                 .submitLabel(.search)
                 .onSubmit { performSearch() }
                 .onChange(of: cityName) { newValue in
-                    viewModel.clearError()
+                    searchViewModel.clearError()
                     if newValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        viewModel.clearSearchResults()
+                        searchViewModel.clearSearchResults()
                     }
                 }
 
@@ -169,7 +173,7 @@ struct LocationSearchView: View {
 
     @ViewBuilder
     private func searchResultsList() -> some View {
-        ForEach(viewModel.searchResults, id: \.location.name) { data in
+        ForEach(searchViewModel.searchResults, id: \.location.name) { data in
             let cardVM = CityCardViewModel(weatherData: data, appSettings: appSettings)
 
             CityCardView(viewModel: cardVM, showStar: false, onFavoriteTapped: {})
@@ -218,6 +222,6 @@ struct LocationSearchView: View {
     private func performSearch() {
         let trimmed = cityName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        viewModel.searchCityWeather(cityName: trimmed)
+        searchViewModel.searchCityWeather(cityName: trimmed)
     }
 }

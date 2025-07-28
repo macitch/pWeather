@@ -9,51 +9,70 @@
 import SwiftUI
 import Combine
 
-/// Central dependency container for the pWeather app
+/// Central dependency container for the pWeather app.
+/// Responsible for initializing and injecting all services, settings, and view models.
 @MainActor
 final class AppDependencies {
-    /// Shared singleton instance
+
+    // MARK: - Singleton Instance
+
+    /// Shared global instance of the dependency container.
     static let shared = AppDependencies()
 
     // MARK: - Services
-    let weatherManager: WeatherManager
+
+    /// Abstract weather service used across the app.
+    let weatherService: WeatherService
+
+    /// Location manager providing real-time location updates.
     let locationManager: LocationManager
 
     // MARK: - Settings
+
+    /// Shared app settings, including unit preferences and theme.
     let appSettings: AppSettings
 
     // MARK: - ViewModels
+
+    /// Manages swipeable city-based weather views.
     let weatherPagerViewModel: WeatherPagerViewModel
+
+    /// Manages current and searched weather data.
     let weatherViewModel: WeatherViewModel
+
+    /// Manages saved locations and persistence.
     let locationViewModel: LocationViewModel
+    
+    /// Handles city search results and errors (refactored)
+    let citySearchViewModel: CitySearchViewModel
 
-    /// Runs on the main actor so it can call into @MainActor ViewModel inits
+    // MARK: - Initialization
+
+    /// Private initializer to enforce singleton usage.
     private init() {
-        // 1) Core services
-        self.weatherManager = WeatherManager()
-        self.locationManager = LocationManager.shared
+        // 1. Core Services
+        let weatherManager = WeatherManager() // Concrete implementation
+        self.weatherService = weatherManager
+        self.locationManager = LocationManager() // ✅ MainActor-safe
 
-        // 2) Settings
+        // 2. App Settings
         self.appSettings = AppSettings()
 
-        // 3) ViewModels (all @MainActor)
-
-        // First: pagerViewModel
+        // 3. ViewModels (all @MainActor)
         self.weatherPagerViewModel = WeatherPagerViewModel(
-            weatherService: weatherManager,
+            weatherService: weatherService,
             appSettings: appSettings
         )
 
-        // Then: weatherViewModel (which uses pager)
         self.weatherViewModel = WeatherViewModel(
-            weatherManager: weatherManager,
+            weatherService: weatherService,
             appSettings: appSettings
         )
 
-        // Lastly: locationViewModel
         self.locationViewModel = LocationViewModel(
-            weatherService: weatherManager,
             appSettings: appSettings
         )
+        
+        self.citySearchViewModel = CitySearchViewModel(weatherService: weatherService)
     }
 }
