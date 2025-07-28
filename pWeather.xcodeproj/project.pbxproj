@@ -837,7 +837,7 @@
 				DEVELOPMENT_ASSET_PATHS = "\"pWeather/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = /Users/Valentina/Desktop/XCode/pWeather/pWeather/Assets/Info.plist;
+				INFOPLIST_FILE = "$(SRCROOT)/pWeather/Assets/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = pWeather;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.weather";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "App needs to access your location data to tell you your location.";
@@ -873,7 +873,7 @@
 				DEVELOPMENT_ASSET_PATHS = "\"pWeather/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = /Users/Valentina/Desktop/XCode/pWeather/pWeather/Assets/Info.plist;
+				INFOPLIST_FILE = "$(SRCROOT)/pWeather/Assets/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = pWeather;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.weather";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "App needs to access your location data to tell you your location.";
