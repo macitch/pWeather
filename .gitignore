@@ -10,3 +10,5 @@ build/
 *.moved-aside
 *.pbxuser
 !default.pbxuser
+**/Package.resolved
+
