@@ -11,6 +11,7 @@ import SwiftUI
 /// Entry point of the pWeather application.
 /// Initializes dependency injection, applies dynamic theming, and manages lifecycle events.
 @main
+@MainActor
 struct pWeatherApp: App {
 
     // MARK: - Dependencies
