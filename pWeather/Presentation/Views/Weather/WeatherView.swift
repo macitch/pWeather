@@ -144,6 +144,7 @@ struct WeatherView: View {
 }
 // MARK: - Previews
 
+#if DEBUG
 #Preview("WeatherView – Light") {
     let settings = AppSettings()
     let weatherVM = WeatherViewModel(weatherService: WeatherManager(), appSettings: settings)
@@ -169,3 +170,4 @@ struct WeatherView: View {
     .environmentObject(weatherVM)
     .preferredColorScheme(.dark)
 }
+#endif
