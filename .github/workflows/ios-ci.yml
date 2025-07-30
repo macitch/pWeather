@@ -19,12 +19,11 @@ jobs:
 
       - name: Remove corrupted Package.resolved
         run: |
-          rm -f pWeather/pWeather.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved || true
+          rm -f pWeather.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
 
       - name: Resolve SwiftPM packages
         run: |
-          xcodebuild -resolvePackageDependencies \
-            -project pWeather/pWeather.xcodeproj
+          xcodebuild -resolvePackageDependencies -project pWeather.xcodeproj
 
       - name: Cache DerivedData
         uses: actions/cache@v4
@@ -35,20 +34,20 @@ jobs:
       - name: Build app (no signing)
         run: |
           set -o pipefail && xcodebuild \
-            -project pWeather/pWeather.xcodeproj \
-            -scheme pWeather \
-            -sdk iphonesimulator \
-            -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
-            clean build | tee build.log | xcpretty
+          -project pWeather.xcodeproj \
+          -scheme pWeather \
+          -sdk iphonesimulator \
+          -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
+          build | tee build.log | xcpretty
 
       - name: Run tests
         run: |
           set -o pipefail && xcodebuild \
-            -project pWeather/pWeather.xcodeproj \
-            -scheme pWeather \
-            -sdk iphonesimulator \
-            -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
-            test | tee test.log | xcpretty
+          -project pWeather.xcodeproj \
+          -scheme pWeather \
+          -sdk iphonesimulator \
+          -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
+          test | tee test.log | xcpretty
 
       - name: Upload build logs (if failed)
         if: failure()
