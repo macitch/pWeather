@@ -30,7 +30,7 @@ struct LoadingView: View {
     var body: some View {
         ZStack {
             // Semi-transparent overlay that fills the screen.
-            scheme.overlay
+            Color.black
                 .opacity(backgroundOpacity)
                 .ignoresSafeArea()
 
