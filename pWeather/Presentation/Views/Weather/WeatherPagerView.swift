@@ -52,15 +52,17 @@ struct WeatherPagerView: View {
             }
         }
         .onAppear {
-            // Trigger fetch for current location if available
             if let location = locationManager.userLocation {
                 print("📡 Fetching weather for: \(location.coordinate.latitude), \(location.coordinate.longitude)")
-                weatherViewModel.fetchCurrentLocationWeatherData(
-                    latitude: location.coordinate.latitude,
-                    longitude: location.coordinate.longitude
-                )
+                Task { @MainActor in
+                    weatherViewModel.fetchCurrentLocationWeatherData(
+                        latitude: location.coordinate.latitude,
+                        longitude: location.coordinate.longitude
+                    )
+                }
             }
         }
+        
         .sheet(isPresented: $isShowingLocationSelector) {
             // Location selector modal with embedded navigation stack
             NavigationStack {
