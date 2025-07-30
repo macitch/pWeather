@@ -134,5 +134,5 @@ struct SettingsView: View {
 #Preview {
     SettingsView()
         .environmentObject(AppSettings())
-        .preferredColorScheme(.light)
+        .safePreferredColorScheme(.light)
 }

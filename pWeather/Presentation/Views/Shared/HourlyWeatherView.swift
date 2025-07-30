@@ -93,7 +93,7 @@ struct HourlyWeatherView: View {
 		  tempF: sampleHour.temp_f
 	 )
 	 .environmentObject(AppSettings())
-	 .preferredColorScheme(.light)
+	 .safePreferredColorScheme(.light)
 	 .padding()
 }
 
@@ -107,6 +107,6 @@ struct HourlyWeatherView: View {
 		  tempF: sampleHour.temp_f
 	 )
 	 .environmentObject(AppSettings())
-	 .preferredColorScheme(.dark)
+	 .safePreferredColorScheme(.light)
 	 .padding()
 }

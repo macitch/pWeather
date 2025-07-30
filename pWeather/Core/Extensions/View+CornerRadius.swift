@@ -8,7 +8,7 @@
 
 import SwiftUI
 
-// MARK: - View Extension for Selective Corner Radius
+// MARK: - View Extension for Selective Corner Radius & Safe Color Scheme
 
 extension View {
     /// Applies a corner radius to specific corners of a view.
@@ -19,6 +19,19 @@ extension View {
     /// - Returns: A view with the specified corners rounded.
     func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
         clipShape(RoundedCorner(radius: radius, corners: corners))
+    }
+
+    /// Safely applies `.preferredColorScheme` only on supported OS versions (iOS 15+).
+    ///
+    /// - Parameter scheme: The desired `ColorScheme` (`.light`, `.dark`, or `nil`).
+    /// - Returns: A view that applies the color scheme conditionally.
+    @ViewBuilder
+    func safePreferredColorScheme(_ scheme: ColorScheme?) -> some View {
+        if #available(iOS 15.0, *) {
+            self.preferredColorScheme(scheme)
+        } else {
+            self
+        }
     }
 }
 

@@ -21,7 +21,7 @@ struct DynamicThemeView<Content: View>: View {
     var body: some View {
         content()
             // Applies the appropriate color scheme based on user settings.
-            .preferredColorScheme(colorSchemeFrom(appSettings.themeMode))
+            .safePreferredColorScheme(colorSchemeFrom(appSettings.themeMode))
     }
 
     /// Maps the `ThemeMode` enum to SwiftUI's `ColorScheme`.

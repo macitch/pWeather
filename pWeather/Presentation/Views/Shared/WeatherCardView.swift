@@ -112,13 +112,13 @@ struct WeatherCardView: View {
 #Preview("WeatherCardView – Light") {
     WeatherCardView(viewModel: previewWeatherData)
         .environmentObject(AppSettings())
-        .preferredColorScheme(.light)
+        .safePreferredColorScheme(.light)
         .padding()
 }
 
 #Preview("WeatherCardView – Dark") {
     WeatherCardView(viewModel: previewWeatherData)
         .environmentObject(AppSettings())
-        .preferredColorScheme(.dark)
+        .safePreferredColorScheme(.dark)
         .padding()
 }

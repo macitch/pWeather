@@ -88,7 +88,7 @@ struct CityCardView: View {
         onFavoriteTapped: {}
     )
     .environmentObject(AppSettings())
-    .preferredColorScheme(.light)
+    .safePreferredColorScheme(.light)
     .padding()
 }
 
@@ -99,6 +99,6 @@ struct CityCardView: View {
         onFavoriteTapped: {}
     )
     .environmentObject(AppSettings())
-    .preferredColorScheme(.dark)
+    .safePreferredColorScheme(.dark)
     .padding()
 }

@@ -155,7 +155,7 @@ struct WeatherView: View {
     )
     .environmentObject(settings)
     .environmentObject(weatherVM)
-    .preferredColorScheme(.light)
+    .safePreferredColorScheme(.light)
 }
 
 #Preview("WeatherView – Dark") {
@@ -168,6 +168,6 @@ struct WeatherView: View {
     )
     .environmentObject(settings)
     .environmentObject(weatherVM)
-    .preferredColorScheme(.dark)
+    .safePreferredColorScheme(.light)
 }
 #endif
