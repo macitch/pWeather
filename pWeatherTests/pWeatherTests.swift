@@ -12,7 +12,7 @@ import XCTest
 class WeatherManagerTests: XCTestCase {
     func testFetchWeatherByCityName() async throws {
         let manager = WeatherManager()
-        let weather = try await manager.fetchWeatherByCityName(city: "Zurich")
+        let weather = try await manager.fetch(byCityName: "Zurich")
         XCTAssertNotNil(weather, "Weather data should not be nil.")
     }
 }
