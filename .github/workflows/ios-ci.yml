@@ -1,27 +1,82 @@
-name: iOS CI Build
+name: iOS CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
+
+concurrency:
+  group: ios-ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
+  test:
     runs-on: macos-14
+    timeout-minutes: 30
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
 
-      - name: Debug commit and file lines
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Show build context
         run: |
-          echo "event_name=${{ github.event_name }}"
+          echo "event=${{ github.event_name }}"
           echo "github.sha=${{ github.sha }}"
           echo "pr.head.sha=${{ github.event.pull_request.head.sha }}"
           git rev-parse HEAD
-          nl -ba pWeather/Presentation/Views/Shared/HourlyWeatherView.swift | sed -n '80,130p'
-          nl -ba pWeather/Presentation/Views/Weather/WeatherView.swift | sed -n '140,190p'
+          xcodebuild -version
+          swift --version
+
+      - name: Cache SwiftPM
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.swiftpm
+            ~/Library/Caches/org.swift.swiftpm
+            ~/Library/Developer/Xcode/DerivedData/SourcePackages
+          key: spm-${{ runner.os }}-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: |
+            spm-${{ runner.os }}-
+
+      - name: Resolve dependencies
+        run: xcodebuild -resolvePackageDependencies -project pWeather.xcodeproj
+
+      - name: Build for testing
+        run: |
+          set -euxo pipefail
+          xcodebuild \
+            -project pWeather.xcodeproj \
+            -scheme pWeather \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
+            -derivedDataPath ./DerivedData \
+            build-for-testing | tee build.log
+
+      - name: Test without building
+        run: |
+          set -euxo pipefail
+          xcodebuild \
+            -project pWeather.xcodeproj \
+            -scheme pWeather \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
+            -derivedDataPath ./DerivedData \
+            test-without-building | tee test.log
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ci-logs
+          path: |
+            build.log
+            test.log
+            DerivedData/Logs/Test
