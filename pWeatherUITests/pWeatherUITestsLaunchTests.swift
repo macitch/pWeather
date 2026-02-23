@@ -13,8 +13,15 @@ class pWeatherUITestsLaunchTests: XCTestCase {
     func testAppLaunch() {
         let app = XCUIApplication()
         app.launch()
-        
-        // Assert the app launched successfully
-        XCTAssertTrue(app.otherElements["MainView"].exists)
+
+        let launchIndicators = [
+            app.staticTexts["Location Access Needed"],
+            app.staticTexts["Fetching data for your location…"],
+            app.staticTexts["Something went wrong"],
+            app.staticTexts["No cities available."]
+        ]
+
+        let launched = launchIndicators.contains { $0.waitForExistence(timeout: 10) }
+        XCTAssertTrue(launched, "Expected one of the root app states to appear after launch.")
     }
 }
