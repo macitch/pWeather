@@ -145,29 +145,30 @@ struct WeatherView: View {
 // MARK: - Previews
 
 #if DEBUG
-#Preview("WeatherView – Light") {
-    let settings = AppSettings()
-    let weatherVM = WeatherViewModel(weatherService: WeatherManager(), appSettings: settings)
+struct WeatherView_Previews: PreviewProvider {
+    static var previews: some View {
+        Group {
+            let settings = AppSettings()
+            let weatherVM = WeatherViewModel(weatherService: WeatherManager(), appSettings: settings)
 
-    WeatherView(
-        externalWeatherData: previewWeatherData,
-        selectedIndex: 0
-    )
-    .environmentObject(settings)
-    .environmentObject(weatherVM)
-    .safePreferredColorScheme(.light)
-}
+            WeatherView(
+                externalWeatherData: previewWeatherData,
+                selectedIndex: 0
+            )
+            .environmentObject(settings)
+            .environmentObject(weatherVM)
+            .safePreferredColorScheme(.light)
+            .previewDisplayName("WeatherView - Light")
 
-#Preview("WeatherView – Dark") {
-    let settings = AppSettings()
-    let weatherVM = WeatherViewModel(weatherService: WeatherManager(), appSettings: settings)
-
-    WeatherView(
-        externalWeatherData: previewWeatherData,
-        selectedIndex: 0
-    )
-    .environmentObject(settings)
-    .environmentObject(weatherVM)
-    .safePreferredColorScheme(.light)
+            WeatherView(
+                externalWeatherData: previewWeatherData,
+                selectedIndex: 0
+            )
+            .environmentObject(settings)
+            .environmentObject(weatherVM)
+            .safePreferredColorScheme(.dark)
+            .previewDisplayName("WeatherView - Dark")
+        }
+    }
 }
 #endif

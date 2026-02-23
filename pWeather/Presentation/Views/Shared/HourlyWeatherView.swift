@@ -83,30 +83,34 @@ struct HourlyWeatherView: View {
 
 // MARK: - Previews
 
-#Preview("HourlyWeatherView – Light") {
-	 let sampleHour = previewWeatherData.forecast.forecastday.first!.hour.first!
+#if DEBUG
+struct HourlyWeatherView_Previews: PreviewProvider {
+	 static var previews: some View {
+		  Group {
+				let sampleHour = previewWeatherData.forecast.forecastday.first!.hour.first!
 
-	 HourlyWeatherView(
-		  icon: "1000_night",
-		  time: sampleHour.time.extractTime() ?? "N/A",
-		  tempC: sampleHour.temp_c,
-		  tempF: sampleHour.temp_f
-	 )
-	 .environmentObject(AppSettings())
-	 .safePreferredColorScheme(.light)
-	 .padding()
+				HourlyWeatherView(
+					 icon: "1000_night",
+					 time: sampleHour.time.extractTime() ?? "N/A",
+					 tempC: sampleHour.temp_c,
+					 tempF: sampleHour.temp_f
+				)
+				.environmentObject(AppSettings())
+				.safePreferredColorScheme(.light)
+				.padding()
+				.previewDisplayName("HourlyWeatherView - Light")
+
+				HourlyWeatherView(
+					 icon: "1000_night",
+					 time: sampleHour.time.extractTime() ?? "N/A",
+					 tempC: sampleHour.temp_c,
+					 tempF: sampleHour.temp_f
+				)
+				.environmentObject(AppSettings())
+				.safePreferredColorScheme(.dark)
+				.padding()
+				.previewDisplayName("HourlyWeatherView - Dark")
+		  }
+	 }
 }
-
-#Preview("HourlyWeatherView – Dark") {
-	 let sampleHour = previewWeatherData.forecast.forecastday.first!.hour.first!
-
-	 HourlyWeatherView(
-		  icon: "1000_night",
-		  time: sampleHour.time.extractTime() ?? "N/A",
-		  tempC: sampleHour.temp_c,
-		  tempF: sampleHour.temp_f
-	 )
-	 .environmentObject(AppSettings())
-	 .safePreferredColorScheme(.light)
-	 .padding()
-}
+#endif
